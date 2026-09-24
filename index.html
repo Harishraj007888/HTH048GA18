@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Highway Safety Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════
+       LOADING SCREEN
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="loader-screen" id="loaderScreen">
+    <div class="loader-inner">
+      <div class="loader-ring-outer"></div>
+      <div class="loader-ring-mid"></div>
+      <div class="loader-ring-inner"></div>
+      <div class="loader-logo">🛣️</div>
+    </div>
+    <div class="loader-title">HIGHWAY SAFETY SYSTEM</div>
+    <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+    <div class="loader-status" id="loaderStatus">Initializing sensors...</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LAYER 1 — CINEMATIC HIGHWAY CANVAS
+  ═══════════════════════════════════════════════════════════ -->
+  <canvas id="highwayCanvas"></canvas>
+
+  <!-- ══════════════════════════════════════════════════════
+       LAYER 2 — ANIMATED GRID OVERLAY
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="grid-overlay"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LAYER 3 — SCAN LINE OVERLAY
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="scanlines"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LAYER 4 — VIGNETTE
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="vignette"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LAYER 5 — PARTICLES
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="particles" id="particles"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════════════════ -->
+  <header class="header" id="mainHeader">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon-wrap">
+          <div class="logo-ring-1"></div>
+          <div class="logo-ring-2"></div>
+          <span class="logo-emoji">🛣️</span>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">HIGHWAY SAFETY</span>
+          <span class="logo-sub">Real-Time IoT Monitoring &nbsp;·&nbsp; ESP32 &nbsp;·&nbsp; MQTT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="conn-pill" id="connectionStatus">
+        <span class="conn-dot" id="statusDot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="hdr-metric">
+        <span class="hdr-metric-lbl">Messages</span>
+        <span class="hdr-metric-val" id="msgCount">0</span>
+      </div>
+      <div class="hdr-sep"></div>
+      <div class="hdr-metric">
+        <span class="hdr-metric-lbl">Last Update</span>
+        <span class="hdr-metric-val mono" id="lastUpdate">--:--:--</span>
+      </div>
+      <div class="hdr-sep"></div>
+      <div class="hdr-metric">
+        <span class="hdr-metric-lbl">System Time</span>
+        <span class="hdr-metric-val mono cyan" id="liveTime">--:--:--</span>
+      </div>
+      <button class="btn-excel ripple" id="exportExcel">
+        <span class="btn-excel-icon">📊</span>
+        <span>Export Excel</span>
+        <div class="ripple-circle"></div>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════
+       ALERT BANNER
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="alert-banner" id="alertBanner">
+    <div class="alert-sweep"></div>
+    <div class="alert-pulse-bar"></div>
+    <span class="alert-icon" id="alertIcon">🛰️</span>
+    <div class="alert-content">
+      <span class="alert-label">SYSTEM STATUS</span>
+      <span class="alert-msg" id="alertMessage">Initializing — Waiting for ESP32 Data...</span>
+    </div>
+    <div class="alert-badges">
+      <span class="alert-badge">MQTT</span>
+      <span class="alert-badge">ESP32</span>
+      <span class="alert-badge">LIVE</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════════════════════════ -->
+  <main class="main">
+
+    <!-- ── KPI ROW ── -->
+    <section class="kpi-row reveal">
+
+      <!-- Speed -->
+      <div class="kpi speed-kpi">
+        <div class="kpi-accent-bar blue"></div>
+        <div class="kpi-corner tl"></div><div class="kpi-corner tr"></div>
+        <div class="kpi-corner bl"></div><div class="kpi-corner br"></div>
+        <div class="kpi-glow-sphere blue-sphere"></div>
+        <div class="kpi-head">
+          <div class="kpi-icon-box blue-box">🚗</div>
+          <span class="kpi-lbl">Vehicle Speed</span>
+          <div class="live-pip" id="pip1"></div>
+        </div>
+        <div class="kpi-number-row">
+          <span class="kpi-num" id="speedKmh">0.0</span>
+          <span class="kpi-u">km/h</span>
+        </div>
+        <div class="kpi-small" id="speedMps">0.00 m/s</div>
+        <div class="speed-gauge">
+          <div class="gauge-track">
+            <div class="gauge-fill" id="speedBar"></div>
+            <div class="gauge-knob" id="speedGlow"></div>
+          </div>
+          <div class="gauge-marks">
+            <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span>
+          </div>
+        </div>
+        <div class="kpi-scan"></div>
+      </div>
+
+      <!-- Safety Status -->
+      <div class="kpi status-kpi" id="statusCard">
+        <div class="kpi-accent-bar green"></div>
+        <div class="kpi-corner tl"></div><div class="kpi-corner tr"></div>
+        <div class="kpi-corner bl"></div><div class="kpi-corner br"></div>
+        <div class="kpi-glow-sphere green-sphere"></div>
+        <div class="kpi-head">
+          <div class="kpi-icon-box green-box">🛡️</div>
+          <span class="kpi-lbl">Safety Status</span>
+          <div class="live-pip" id="pip2"></div>
+        </div>
+        <div class="status-center">
+          <div class="status-badge" id="statusBadge">
+            <div class="badge-rings"><div class="badge-ring br1"></div><div class="badge-ring br2"></div></div>
+            <span id="statusBadgeIcon">⏳</span>
+            <span id="statusBadgeText">WAITING</span>
+          </div>
+        </div>
+        <div class="kpi-small">Active: <strong id="activeSensor">NONE</strong></div>
+        <div class="kpi-scan"></div>
+      </div>
+
+      <!-- Min Distance -->
+      <div class="kpi dist-kpi">
+        <div class="kpi-accent-bar purple"></div>
+        <div class="kpi-corner tl"></div><div class="kpi-corner tr"></div>
+        <div class="kpi-corner bl"></div><div class="kpi-corner br"></div>
+        <div class="kpi-glow-sphere purple-sphere"></div>
+        <div class="kpi-head">
+          <div class="kpi-icon-box purple-box">📡</div>
+          <span class="kpi-lbl">Min Distance</span>
+          <div class="live-pip" id="pip3"></div>
+        </div>
+        <div class="kpi-number-row">
+          <span class="kpi-num" id="minDist">---</span>
+          <span class="kpi-u">cm</span>
+        </div>
+        <div class="kpi-small">Closest obstacle</div>
+        <div class="sonar-box">
+          <div class="sonar-pulse p1"></div>
+          <div class="sonar-pulse p2"></div>
+          <div class="sonar-pulse p3"></div>
+          <svg class="ring-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8b5cf6"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="50" cy="50" r="38"/>
+            <circle class="ring-prog" id="distRing" cx="50" cy="50" r="38"
+              stroke-dasharray="238.8" stroke-dashoffset="238.8"/>
+          </svg>
+          <div class="ring-val" id="ringLabel">--</div>
+        </div>
+        <div class="kpi-scan"></div>
+      </div>
+
+      <!-- Device -->
+      <div class="kpi device-kpi">
+        <div class="kpi-accent-bar orange"></div>
+        <div class="kpi-corner tl"></div><div class="kpi-corner tr"></div>
+        <div class="kpi-corner bl"></div><div class="kpi-corner br"></div>
+        <div class="kpi-glow-sphere orange-sphere"></div>
+        <div class="kpi-head">
+          <div class="kpi-icon-box orange-box">📟</div>
+          <span class="kpi-lbl">Device Info</span>
+          <div class="live-pip" id="pip4"></div>
+        </div>
+        <div class="dev-list">
+          <div class="dev-item"><span class="dev-k">Device</span><span class="dev-v chip" id="deviceName">--</span></div>
+          <div class="dev-item"><span class="dev-k">Protocol</span><span class="dev-v">MQTT / WS</span></div>
+          <div class="dev-item"><span class="dev-k">Topic</span><span class="dev-v pill">highway/data</span></div>
+          <div class="dev-item"><span class="dev-k">Records</span><span class="dev-v accent" id="recordCount">0</span></div>
+        </div>
+        <div class="kpi-scan"></div>
+      </div>
+
+    </section>
+
+    <!-- ── MIDDLE ROW ── -->
+    <section class="mid-row reveal">
+
+      <!-- Ultrasonic sensors -->
+      <div class="holo-panel sensor-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <div class="panel-top-bar"></div>
+        <div class="phdr">
+          <span class="phdr-icon">📶</span>
+          <h2 class="phdr-title">Ultrasonic Sensors</h2>
+          <span class="live-tag">● LIVE</span>
+        </div>
+
+        <div class="us-card" id="usCard1">
+          <div class="us-head">
+            <div class="us-id-row">
+              <div class="us-ind" id="s1dot"></div>
+              <span class="us-name">SENSOR US-1</span>
+            </div>
+            <span class="us-tag" id="s1label">No Data</span>
+          </div>
+          <div class="us-reading" id="dist1">--- cm</div>
+          <div class="us-bar-wrap">
+            <div class="us-bar-bg">
+              <div class="us-bar-fg" id="bar1"></div>
+            </div>
+            <div class="us-ticks">
+              <span style="left:19%">10</span>
+              <span style="left:39%">20</span>
+              <span style="left:59%">30</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="us-card" id="usCard2">
+          <div class="us-head">
+            <div class="us-id-row">
+              <div class="us-ind" id="s2dot"></div>
+              <span class="us-name">SENSOR US-2</span>
+            </div>
+            <span class="us-tag" id="s2label">No Data</span>
+          </div>
+          <div class="us-reading" id="dist2">--- cm</div>
+          <div class="us-bar-wrap">
+            <div class="us-bar-bg">
+              <div class="us-bar-fg" id="bar2"></div>
+            </div>
+            <div class="us-ticks">
+              <span style="left:19%">10</span>
+              <span style="left:39%">20</span>
+              <span style="left:59%">30</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="thresh-table">
+          <div class="tt-row"><span class="tt-dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e"></span><span class="tt-txt">&gt; 30 cm — CLEAR</span></div>
+          <div class="tt-row"><span class="tt-dot" style="background:#3b82f6;box-shadow:0 0 6px #3b82f6"></span><span class="tt-txt">≤ 30 cm — DETECTED</span></div>
+          <div class="tt-row"><span class="tt-dot" style="background:#eab308;box-shadow:0 0 6px #eab308"></span><span class="tt-txt">≤ 20 cm — WARNING</span></div>
+          <div class="tt-row"><span class="tt-dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444"></span><span class="tt-txt">≤ 10 cm — CRITICAL</span></div>
+        </div>
+      </div>
+
+      <!-- Indicators -->
+      <div class="holo-panel ind-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <div class="panel-top-bar"></div>
+        <div class="phdr">
+          <span class="phdr-icon">💡</span>
+          <h2 class="phdr-title">Indicators</h2>
+        </div>
+
+        <div class="led-grid">
+          <div class="led-cell">
+            <div class="led-orb green" id="greenLed">
+              <div class="led-inner"></div><div class="led-glare"></div>
+              <div class="led-halo"></div>
+            </div>
+            <span class="led-label">GREEN</span>
+            <span class="led-state" id="greenState">OFF</span>
+          </div>
+          <div class="led-cell">
+            <div class="led-orb yellow" id="yellowLed">
+              <div class="led-inner"></div><div class="led-glare"></div>
+              <div class="led-halo"></div>
+            </div>
+            <span class="led-label">YELLOW</span>
+            <span class="led-state" id="yellowState">OFF</span>
+          </div>
+          <div class="led-cell">
+            <div class="led-orb red" id="redLed">
+              <div class="led-inner"></div><div class="led-glare"></div>
+              <div class="led-halo"></div>
+            </div>
+            <span class="led-label">RED</span>
+            <span class="led-state" id="redState">OFF</span>
+          </div>
+          <div class="led-cell">
+            <div class="buzzer-cell" id="buzzerOrb">
+              <span id="buzzerIcon">🔇</span>
+              <div class="buzzer-wave w1"></div>
+              <div class="buzzer-wave w2"></div>
+              <div class="buzzer-wave w3"></div>
+            </div>
+            <span class="led-label">BUZZER</span>
+            <span class="led-state" id="buzzerState">OFF</span>
+          </div>
+        </div>
+
+        <div class="ir-block">
+          <div class="ir-title">IR SENSORS</div>
+          <div class="ir-row"><span class="ir-lbl">IR Sensor 1</span><span class="ir-val" id="ir1Val">--</span></div>
+          <div class="ir-row"><span class="ir-lbl">IR Sensor 2</span><span class="ir-val" id="ir2Val">--</span></div>
+        </div>
+      </div>
+
+      <!-- Speed Chart -->
+      <div class="holo-panel chart-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <div class="panel-top-bar"></div>
+        <div class="phdr">
+          <span class="phdr-icon">📈</span>
+          <h2 class="phdr-title">Speed History</h2>
+          <span class="live-tag">● LIVE</span>
+          <button class="ghost-btn" id="clearChart">Clear</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="speedChart"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── BOTTOM ROW ── -->
+    <section class="btm-row reveal">
+
+      <div class="holo-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <div class="panel-top-bar"></div>
+        <div class="phdr">
+          <span class="phdr-icon">📉</span>
+          <h2 class="phdr-title">Distance History</h2>
+          <span class="live-tag">● LIVE</span>
+        </div>
+        <div class="chart-wrap" style="min-height:210px">
+          <canvas id="distChart"></canvas>
+        </div>
+      </div>
+
+      <div class="holo-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <div class="panel-top-bar"></div>
+        <div class="phdr">
+          <span class="phdr-icon">📋</span>
+          <h2 class="phdr-title">Live MQTT Log</h2>
+          <button class="ghost-btn" id="clearLog">Clear</button>
+        </div>
+        <div class="log-terminal" id="logBox">
+          <div class="log-idle">▋ Awaiting connection...</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── DATA TABLE ── -->
+    <section class="holo-panel table-section reveal">
+      <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+      <div class="panel-top-bar"></div>
+      <div class="phdr">
+        <span class="phdr-icon">🗃️</span>
+        <h2 class="phdr-title">Data Records</h2>
+        <span class="rec-pill" id="recordBadge">0 records</span>
+        <div style="flex:1"></div>
+        <button class="ghost-btn" id="clearTable">Clear All</button>
+        <button class="btn-excel-sm ripple" id="exportExcel2">
+          📊 Export Excel
+          <div class="ripple-circle"></div>
+        </button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-tbl" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th><th>Time</th><th>Speed km/h</th><th>Speed m/s</th>
+              <th>Dist 1 cm</th><th>Dist 2 cm</th><th>Min Dist cm</th>
+              <th>Status</th><th>Active Sensor</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr class="tbl-empty"><td colspan="9">No data yet — waiting for ESP32...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer-sweep"></div>
+    <div class="ft-left">
+      <span class="ft-brand">🛣️ Highway Safety Monitoring System</span>
+      <span class="ft-sep">|</span>
+      <span>ESP32 · MQTT · WebSocket · SheetJS</span>
+    </div>
+    <div class="ft-right">
+      <span>test.mosquitto.org : 8081</span>
+      <span class="ft-sep">|</span>
+      <span>highway/data</span>
+      <span class="ft-sep">|</span>
+      <span id="footerStatus" class="ft-status">● Connecting</span>
+    </div>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+ 
